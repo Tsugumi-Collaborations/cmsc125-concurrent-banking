@@ -16,7 +16,6 @@
 // Global Variables
 bool verbose = false;
 int deadlock_strategy = 0; // 0 = prevention, 1 = detection
-int initial_account_count = 0;
 
 int main(int argc, char *argv[])
 {
@@ -107,17 +106,11 @@ int main(int argc, char *argv[])
     bank.num_accounts = num_accounts;
     for (int i = 0; i < num_accounts; i++)
     {
-        bank.accounts[i] = accounts[i];
+        bank.accounts[i].account_id       = accounts[i].account_id;
+        bank.accounts[i].balance_centavos = accounts[i].balance_centavos;
+        pthread_rwlock_init(&bank.accounts[i].lock, NULL); 
     }
     pthread_mutex_init(&bank.bank_lock, NULL);
-
-    initial_account_count = 0;
-    for (int i = 0; i < num_accounts; i++)
-    {
-        initial_account_count += bank.accounts[i].balance_centavos;
-    }
-
-    free(accounts);
 
     // Buffer Pool
     init_buffer_pool(&buffer_pool);
@@ -167,9 +160,11 @@ int main(int argc, char *argv[])
     // Stop the timer thread
     simulation_running = 0;
     pthread_join(timer_tid, NULL);
+    print_metrics(transactions, num_transactions, accounts, num_accounts);
     print_accounts_to_file("tests/post_accounts.txt");
 
     // Cleanup
+    free(accounts);
     free(transactions);
     return 0;
 }
